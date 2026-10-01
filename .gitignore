@@ -1,0 +1,32 @@
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Credentials live outside the repo (~/.sch-mail/credentials.json) — never commit
+credentials.json
+*.env
+
+# Secrets. A bare `.env` line does not cover `.env.bak-*`, `.env.local` or
+# `.env.production`, and a timestamped backup written beside a `.env` slips
+# through exactly that gap. Keep the rule in the repo rather than in a global
+# ignore file, which is machine-local and protects neither a fresh clone nor CI.
+.env.*
+# Credential-shaped files. Nothing of this shape is tracked in any weirdapps
+# repo today, and these two lines are what keeps it that way: a key file copied
+# into the working tree is otherwise one `git add -A` away from a commit. A
+# global ignore is not a substitute, because no clone and no CI runner ever
+# reads one.
+*.pem
+*.key
+
+
+# Coverage artefacts. `.coverage` is a file and `htmlcov/` a directory,
+# so both forms are needed; a bare `htmlcov` would not match the directory.
+.coverage
+.coverage.*
+htmlcov/

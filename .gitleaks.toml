@@ -1,0 +1,69 @@
+# gitleaks configuration for sch-mail.
+#
+# Copied from the canonical template at weirdapps/shared-workflows/.gitleaks.toml.
+# Keep the two in step: fix a false positive there first, then propagate, rather
+# than diverging one repo at a time.
+#
+# Policy: extend the default ruleset, never disable a rule, and allowlist only
+# what has been PROVEN not to be a live credential. Every entry carries its
+# reason. A real credential is ROTATED and then pinned in .gitleaksignore with
+# its revocation date; it is never allowlisted here.
+#
+# Singular [allowlist], not plural [[allowlists]], on purpose. gitleaks 8.24.3
+# parses [[rules]] but silently ignores top-level [[allowlists]], and 8.24.3 is
+# what gitleaks/gitleaks-action installs by default, so a config using the plural
+# form under an older binary has suppressions that look present and are dead.
+#
+# Run locally:  gitleaks git . --config .gitleaks.toml -v
+
+title = "Gitleaks config"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist for non-sensitive patterns"
+
+# Template and example files: by definition they carry placeholder values.
+paths = [
+  '''\.env\.example$''',
+  '''\.env\.template$''',
+  '''\.env\.local\.example$''',
+  '''config\.example\.''',
+  '''\.sample$''',
+]
+
+regexes = [
+  # Test fixtures and mock data.
+  '''test[_-]?secret[_-]?key''',
+  '''mock[_-]?api[_-]?key''',
+  '''dummy[_-]?token''',
+  '''fake[_-]?key''',
+  '''example\.com/api/.*''',
+  '''localhost:.*''',
+  '''127\.0\.0\.1:.*''',
+
+  # Screaming-snake placeholders in runbooks, e.g. a documented
+  #     curl -i -H "Authorization: Bearer YOUR_TOKEN"
+  # which gitleaks' curl-auth-header rule reports as a bearer token. Requires an
+  # explicit placeholder prefix and an all-caps body, a shape no issued token
+  # has, so it cannot swallow a real value.
+  '''^(?:YOUR|MY|EXAMPLE|SAMPLE|PLACEHOLDER|REPLACE|CHANGE)[_-][A-Z0-9_]+$''',
+
+  # Shell-variable credentials passed to `curl -u`, e.g. the SonarCloud poll in
+  # the shared sonarcloud.yml:
+  #     body=$(curl -sS -u "${SONAR_TOKEN}:" "$task_url" || true)
+  # The committed text is the variable NAME; the value comes from an Actions
+  # secret at runtime. gitleaks' curl-auth-user rule cannot tell the two apart
+  # and fired identically in 27 repos, which trains the reader to ignore a
+  # non-zero gitleaks exit, and a real leak then hides in that noise. So the
+  # noise is retired here rather than tolerated.
+  #
+  # Deliberately narrow. This anchors on the whole captured secret being a bare
+  # shell expansion plus its trailing colon, INCLUDING the surrounding quotes,
+  # which is what curl-auth-user captures: '"${SONAR_TOKEN}:"'. It is not a
+  # blanket exemption for `curl`, and it cannot match a literal token: verified
+  # on gitleaks 8.30.1 by planting an `sqp_`-prefixed 40-hex literal in the same
+  # `curl -sS -u "<tok>:"` shape, which is still caught.
+  '''^"?\$\{?[A-Za-z_][A-Za-z0-9_]*\}?:"?$''',
+]

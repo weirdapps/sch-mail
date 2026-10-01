@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+# Minimal token scope. Added 2026-09-20: this workflow had no
+# permissions: key, so GITHUB_TOKEN arrived with the repository default,
+# which can grant write across contents, issues, pull-requests and more.
+# Nothing here writes anything; it checks out and runs checks.
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          # Nothing here pushes, so GITHUB_TOKEN stays out of .git/config,
+          # where the code being checked could read it.
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7
+        with:
+          python-version: "3.12"
+      # Pinned, so a new uv release cannot change what CI installs or runs.
+      - run: pip install uv==0.12.21
+      - run: uv sync --extra dev --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7
+        with:
+          python-version: "3.12"
+      - run: pip install uv==0.12.21
+      - run: uv sync --extra dev --frozen
+      - run: uv run python -c "import server; print('Import OK')"
+      - run: uv run pytest -q

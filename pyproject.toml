@@ -1,0 +1,22 @@
+[project]
+name = "sch-mail"
+version = "0.1.0"
+description = "MCP server for Greek School Network (sch.gr) email via IMAP (read) + SMTP (send/forward/move/create-folder)"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp[cli]>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["ruff>=0.16.3", "pytest>=8.3.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP"]
+ignore = ["E501"]
